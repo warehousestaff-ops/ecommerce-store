@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reviews &mdash; Store.</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .reviews-page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 3rem 2.5rem 6rem;
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 3rem;
+      align-items: start;
+    }
+
+    /* List */
+    .reviews-col-title {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.25rem;
+    }
+
+    .reviews-meta {
+      font-size: 0.8rem;
+      color: var(--gray-400);
+      margin-bottom: 1.75rem;
+    }
+
+    .reviews-list { display: flex; flex-direction: column; gap: 1.1rem; }
+
+    .review-card {
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      padding: 1.5rem;
+      animation: slideIn 0.3s ease both;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.5rem;
+      gap: 1rem;
+    }
+
+    .review-author-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .review-avatar {
+      width: 36px;
+      height: 36px;
+      background: var(--black);
+      color: var(--white);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .review-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .review-date {
+      font-size: 0.72rem;
+      color: var(--gray-400);
+      white-space: nowrap;
+    }
+
+    .review-stars { display: flex; gap: 2px; margin-bottom: 0.65rem; }
+    .star-f { color: var(--black); font-size: 0.92rem; }
+    .star-e { color: var(--gray-200); font-size: 0.92rem; }
+
+    .review-comment {
+      font-size: 0.875rem;
+      color: var(--gray-600);
+      font-weight: 300;
+      line-height: 1.8;
+    }
+
+    /* Form */
+    .review-form-card {
+      background: var(--gray-50);
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      padding: 2rem;
+      position: sticky;
+      top: 80px;
+    }
+
+    .form-card-title {
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.5rem;
+    }
+
+    .star-picker {
+      display: flex;
+      gap: 4px;
+      margin-top: 0.4rem;
+    }
+
+    .star-pick {
+      font-size: 1.75rem;
+      color: var(--gray-200);
+      cursor: pointer;
+      transition: color 0.12s, transform 0.1s;
+      user-select: none;
+      line-height: 1;
+    }
+
+    .star-pick.hovered,
+    .star-pick.selected { color: var(--black); }
+    .star-pick:hover { transform: scale(1.1); }
+
+    .rating-error {
+      font-size: 0.74rem;
+      color: #CC0000;
+      margin-top: 0.3rem;
+      display: none;
+    }
+
+    /* Toast */
+    .toast-light {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(14px);
+      background: var(--black);
+      color: var(--white);
+      padding: 0.72rem 1.75rem;
+      border-radius: 100px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.28s, transform 0.28s;
+      pointer-events: none;
+      z-index: 300;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+    }
+
+    .toast-light.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 900px) {
+      .reviews-page { grid-template-columns: 1fr; }
+      .review-form-card { position: static; order: -1; }
+    }
+
+    @media (max-width: 768px) { .reviews-page { padding: 2rem 1.25rem 4rem; } }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="nav-logo">Store<span>.</span></a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="products.html">Products</a></li>
+      <li><a href="reviews.html" class="active">Reviews</a></li>
+    </ul>
+    <div class="nav-right">
+      <a href="cart.html" class="cart-link" aria-label="Cart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        <span class="cart-badge" id="cartBadge"></span>
+      </a>
+      <button class="nav-hamburger" id="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="nav-mobile" id="navMobile">
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="products.html">Products</a></li>
+      <li><a href="reviews.html">Reviews</a></li>
+      <li><a href="cart.html">Cart</a></li>
+    </ul>
+  </div>
+
+  <header class="page-header">
+    <h1>Customer Reviews</h1>
+    <p>What our customers say about us</p>
+  </header>
+
+  <div class="reviews-page">
+
+    <div>
+      <div class="reviews-col-title">All Reviews</div>
+      <div class="reviews-meta" id="reviewsMeta"></div>
+      <div class="reviews-list" id="reviewsList"></div>
+    </div>
+
+    <div class="review-form-card">
+      <div class="form-card-title">Leave a Review</div>
+      <form id="reviewForm" novalidate>
+        <div class="form-group">
+          <label for="reviewName">Your Name</label>
+          <input type="text" id="reviewName" placeholder="e.g. Jane Smith" required />
+          <div class="error-msg" id="name-error">Please enter your name.</div>
+        </div>
+        <div class="form-group">
+          <label>Star Rating</label>
+          <div class="star-picker" id="starPicker">
+            <span class="star-pick" data-value="1" tabindex="0" role="radio" aria-label="1 star">&#9733;</span>
+            <span class="star-pick" data-value="2" tabindex="0" role="radio" aria-label="2 stars">&#9733;</span>
+            <span class="star-pick" data-value="3" tabindex="0" role="radio" aria-label="3 stars">&#9733;</span>
+            <span class="star-pick" data-value="4" tabindex="0" role="radio" aria-label="4 stars">&#9733;</span>
+            <span class="star-pick" data-value="5" tabindex="0" role="radio" aria-label="5 stars">&#9733;</span>
+          </div>
+          <div class="rating-error" id="rating-error">Please select a rating.</div>
+        </div>
+        <div class="form-group">
+          <label for="reviewComment">Your Review</label>
+          <textarea id="reviewComment" placeholder="Tell us about your experience&hellip;" required></textarea>
+          <div class="error-msg" id="comment-error">Please write a short review.</div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">Submit Review</button>
+      </form>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="footer-logo">Store<span>.</span></div>
+    <div class="footer-copy">&copy; 2026 Store. All rights reserved.</div>
+  </footer>
+
+  <div class="toast-light" id="toast">Review posted!</div>
+
+  <script>
+    var REVIEWS_KEY = 'ec_reviews';
+
+    function loadReviews() {
+      try { return JSON.parse(localStorage.getItem(REVIEWS_KEY) || '[]'); } catch(e) { return []; }
+    }
+
+    function saveReviews(arr) { localStorage.setItem(REVIEWS_KEY, JSON.stringify(arr)); }
+
+    function loadCart() {
+      try { return JSON.parse(localStorage.getItem('ec_cart') || '[]'); } catch(e) { return []; }
+    }
+
+    function updateBadge() {
+      var count = loadCart().reduce(function(s,i) { return s + i.quantity; }, 0);
+      var b = document.getElementById('cartBadge');
+      if (b) { b.textContent = count; b.style.display = count > 0 ? 'flex' : 'none'; }
+    }
+
+    function esc(s) {
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function starsHTML(n) {
+      var h = '';
+      for (var i = 1; i <= 5; i++) h += '<span class="' + (i<=n?'star-f':'star-e') + '">&#9733;</span>';
+      return h;
+    }
+
+    function initials(name) {
+      var parts = name.trim().split(' ');
+      if (parts.length >= 2) return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+      return name.trim().slice(0,2).toUpperCase();
+    }
+
+    function formatDate(d) {
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+    }
+
+    function renderReviews() {
+      var reviews = loadReviews();
+      var list = document.getElementById('reviewsList');
+      var meta = document.getElementById('reviewsMeta');
+
+      if (reviews.length === 0) {
+        meta.textContent = '0 reviews';
+        list.innerHTML = '<div style="color:var(--gray-400);font-size:0.88rem;padding:2rem 0;">No reviews yet &mdash; be the first to share your experience.</div>';
+        return;
+      }
+
+      var avg = (reviews.reduce(function(s,r){return s+r.rating;},0)/reviews.length).toFixed(1);
+      meta.textContent = reviews.length + ' review' + (reviews.length!==1?'s':'') + ' \u00b7 ' + avg + '\u2605 average';
+
+      list.innerHTML = reviews.slice().reverse().map(function(r) {
+        return '<div class="review-card">' +
+          '<div class="review-header">' +
+            '<div class="review-author-row">' +
+              '<div class="review-avatar">' + esc(initials(r.name)) + '</div>' +
+              '<div><div class="review-name">' + esc(r.name) + '</div></div>' +
+            '</div>' +
+            '<div class="review-date">' + esc(r.date) + '</div>' +
+          '</div>' +
+          '<div class="review-stars">' + starsHTML(r.rating) + '</div>' +
+          '<p class="review-comment">' + esc(r.comment) + '</p>' +
+        '</div>';
+      }).join('');
+    }
+
+    /* Star picker */
+    var selectedRating = 0;
+    var starPicks = document.querySelectorAll('.star-pick');
+
+    function updateStars(hover, sel) {
+      starPicks.forEach(function(s) {
+        var v = parseInt(s.getAttribute('data-value'), 10);
+        s.classList.remove('hovered','selected');
+        if (hover > 0 && v <= hover) s.classList.add('hovered');
+        else if (hover === 0 && v <= sel) s.classList.add('selected');
+      });
+    }
+
+    starPicks.forEach(function(s) {
+      s.addEventListener('mouseover', function() { updateStars(parseInt(s.getAttribute('data-value'),10), selectedRating); });
+      s.addEventListener('click', function() {
+        selectedRating = parseInt(s.getAttribute('data-value'),10);
+        document.getElementById('rating-error').style.display = 'none';
+        updateStars(0, selectedRating);
+      });
+      s.addEventListener('keydown', function(e) {
+        if (e.key==='Enter'||e.key===' ') {
+          selectedRating = parseInt(s.getAttribute('data-value'),10);
+          document.getElementById('rating-error').style.display = 'none';
+          updateStars(0, selectedRating);
+        }
+      });
+    });
+
+    document.getElementById('starPicker').addEventListener('mouseleave', function() { updateStars(0, selectedRating); });
+
+    /* Form submit */
+    document.getElementById('reviewForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var valid = true;
+
+      var name = document.getElementById('reviewName').value.trim();
+      var nameErr = document.getElementById('name-error');
+      if (name.length < 2) {
+        document.getElementById('reviewName').classList.add('error');
+        nameErr.style.display = 'block'; valid = false;
+      } else {
+        document.getElementById('reviewName').classList.remove('error');
+        nameErr.style.display = 'none';
+      }
+
+      if (selectedRating === 0) {
+        document.getElementById('rating-error').style.display = 'block'; valid = false;
+      }
+
+      var comment = document.getElementById('reviewComment').value.trim();
+      var commentErr = document.getElementById('comment-error');
+      if (comment.length < 5) {
+        document.getElementById('reviewComment').classList.add('error');
+        commentErr.style.display = 'block'; valid = false;
+      } else {
+        document.getElementById('reviewComment').classList.remove('error');
+        commentErr.style.display = 'none';
+      }
+
+      if (!valid) return;
+
+      var reviews = loadReviews();
+      reviews.push({ name: name, rating: selectedRating, comment: comment, date: formatDate(new Date()) });
+      saveReviews(reviews);
+
+      document.getElementById('reviewForm').reset();
+      selectedRating = 0;
+      updateStars(0, 0);
+      renderReviews();
+
+      var t = document.getElementById('toast');
+      t.classList.add('show');
+      setTimeout(function() { t.classList.remove('show'); }, 2400);
+    });
+
+    document.getElementById('reviewName').addEventListener('input', function() {
+      this.classList.remove('error'); document.getElementById('name-error').style.display='none';
+    });
+    document.getElementById('reviewComment').addEventListener('input', function() {
+      this.classList.remove('error'); document.getElementById('comment-error').style.display='none';
+    });
+
+    document.getElementById('hamburger').addEventListener('click', function() {
+      document.getElementById('navMobile').classList.toggle('open');
+    });
+
+    updateBadge();
+    renderReviews();
+  </script>
+</body>
+</html>

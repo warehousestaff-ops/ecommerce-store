@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Products &mdash; Store.</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .products-layout {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 3rem 2.5rem 6rem;
+    }
+
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-tab {
+      background: none;
+      border: 1.5px solid var(--border);
+      color: var(--gray-600);
+      padding: 0.4rem 1rem;
+      border-radius: 100px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+
+    .filter-tab:hover { border-color: var(--black); color: var(--black); }
+    .filter-tab.active { background: var(--black); border-color: var(--black); color: var(--white); }
+
+    .products-count {
+      font-size: 0.82rem;
+      color: var(--gray-400);
+      white-space: nowrap;
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1100px) { .products-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 768px)  {
+      .products-layout { padding: 2rem 1.25rem 4rem; }
+      .products-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    }
+    @media (max-width: 400px)  { .products-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="nav-logo">Store<span>.</span></a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="products.html" class="active">Products</a></li>
+      <li><a href="reviews.html">Reviews</a></li>
+    </ul>
+    <div class="nav-right">
+      <a href="cart.html" class="cart-link" aria-label="Cart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        <span class="cart-badge" id="cartBadge"></span>
+      </a>
+      <button class="nav-hamburger" id="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="nav-mobile" id="navMobile">
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="products.html">Products</a></li>
+      <li><a href="reviews.html">Reviews</a></li>
+      <li><a href="cart.html">Cart</a></li>
+    </ul>
+  </div>
+
+  <header class="page-header">
+    <h1>All Products</h1>
+    <p>Browse our full collection &mdash; free delivery on orders over &pound;50</p>
+  </header>
+
+  <div class="products-layout">
+    <div class="filter-bar">
+      <div class="filter-tabs" id="filterTabs">
+        <button class="filter-tab active" data-cat="all">All</button>
+        <button class="filter-tab" data-cat="Clothing">Clothing</button>
+        <button class="filter-tab" data-cat="Accessories">Accessories</button>
+        <button class="filter-tab" data-cat="Home">Home</button>
+        <button class="filter-tab" data-cat="Stationery">Stationery</button>
+      </div>
+      <div class="products-count" id="productsCount"></div>
+    </div>
+    <div class="products-grid" id="productsGrid"></div>
+  </div>
+
+  <footer>
+    <div class="footer-logo">Store<span>.</span></div>
+    <div class="footer-copy">&copy; 2026 Store. All rights reserved.</div>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    var SEED_PRODUCTS = [
+      { id: 'p1', name: 'Classic White Tee', price: 29.99, description: 'A timeless crew-neck t-shirt in soft organic cotton. A wardrobe essential for any occasion.', image: 'https://picsum.photos/seed/whitete/600/600', category: 'Clothing', featured: true },
+      { id: 'p2', name: 'Black Hoodie', price: 54.99, description: 'A heavyweight pullover hoodie with a relaxed fit. Warm, durable, and endlessly versatile.', image: 'https://picsum.photos/seed/hoodie1/600/600', category: 'Clothing', featured: true },
+      { id: 'p3', name: 'Canvas Tote Bag', price: 19.99, description: 'A sturdy natural canvas tote with reinforced handles. Perfect for shopping, travel, or everyday use.', image: 'https://picsum.photos/seed/totebag/600/600', category: 'Accessories', featured: true },
+      { id: 'p4', name: 'Slim Leather Wallet', price: 39.99, description: 'A slim bi-fold wallet in full-grain leather. Cards, notes, and essentials without the bulk.', image: 'https://picsum.photos/seed/wallet1/600/600', category: 'Accessories', featured: true },
+      { id: 'p5', name: 'Minimal Watch', price: 89.99, description: 'A clean dial watch with a genuine leather strap. Japanese quartz movement, water resistant to 30m.', image: 'https://picsum.photos/seed/watch1/600/600', category: 'Accessories', featured: false },
+      { id: 'p6', name: 'Ceramic Mug', price: 14.99, description: 'A minimalist 350ml ceramic mug. Dishwasher and microwave safe with a comfortable handle.', image: 'https://picsum.photos/seed/mug1/600/600', category: 'Home', featured: false },
+      { id: 'p7', name: 'Hardback Notebook', price: 16.99, description: 'An A5 dot-grid notebook with a matte hardback cover. 192 pages of premium off-white paper.', image: 'https://picsum.photos/seed/notebook1/600/600', category: 'Stationery', featured: false },
+      { id: 'p8', name: 'Slim Chinos', price: 44.99, description: 'Tailored slim-fit chinos in a neutral tone. Smart enough for the office, casual for weekends.', image: 'https://picsum.photos/seed/chinos1/600/600', category: 'Clothing', featured: false }
+    ];
+
+    function loadProducts() {
+      try { var s = localStorage.getItem('ec_products'); if (s) return JSON.parse(s); } catch(e) {}
+      localStorage.setItem('ec_products', JSON.stringify(SEED_PRODUCTS));
+      return SEED_PRODUCTS;
+    }
+
+    function loadCart() {
+      try { return JSON.parse(localStorage.getItem('ec_cart') || '[]'); } catch(e) { return []; }
+    }
+
+    function saveCart(c) { localStorage.setItem('ec_cart', JSON.stringify(c)); }
+
+    function updateBadge() {
+      var count = loadCart().reduce(function(s,i) { return s + i.quantity; }, 0);
+      var b = document.getElementById('cartBadge');
+      if (b) { b.textContent = count; b.style.display = count > 0 ? 'flex' : 'none'; }
+    }
+
+    function showToast(msg) {
+      var t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      setTimeout(function() { t.classList.remove('show'); }, 2400);
+    }
+
+    function addToCart(id) {
+      var cart = loadCart();
+      var idx = -1;
+      for (var i = 0; i < cart.length; i++) { if (cart[i].productId === id) { idx = i; break; } }
+      if (idx > -1) { cart[idx].quantity++; } else { cart.push({ productId: id, quantity: 1 }); }
+      saveCart(cart); updateBadge(); showToast('Added to cart');
+    }
+
+    var currentCat = 'all';
+
+    function renderProducts(cat) {
+      currentCat = cat;
+      var products = loadProducts();
+      var filtered = cat === 'all' ? products : products.filter(function(p) { return p.category === cat; });
+      var grid = document.getElementById('productsGrid');
+      var countEl = document.getElementById('productsCount');
+
+      document.querySelectorAll('.filter-tab').forEach(function(t) {
+        t.classList.toggle('active', t.getAttribute('data-cat') === cat);
+      });
+
+      countEl.textContent = filtered.length + ' product' + (filtered.length !== 1 ? 's' : '');
+
+      if (!filtered.length) {
+        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;padding:4rem 0"><div class="empty-icon">&#128722;</div><h3>No products found</h3><p>Try a different category.</p></div>';
+        return;
+      }
+
+      grid.innerHTML = filtered.map(function(p) {
+        return '<div class="product-card">' +
+          '<div class="product-img-wrap"><img src="' + p.image + '" alt="' + p.name + '" loading="lazy" /></div>' +
+          '<div class="product-info">' +
+            '<div class="product-cat">' + p.category + '</div>' +
+            '<div class="product-name">' + p.name + '</div>' +
+            '<p class="product-desc">' + p.description + '</p>' +
+            '<div class="product-footer">' +
+              '<div class="product-price">&pound;' + p.price.toFixed(2) + '</div>' +
+              '<button class="btn btn-primary btn-sm" onclick="addToCart(\'' + p.id + '\')">Add to Cart</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    document.querySelectorAll('.filter-tab').forEach(function(tab) {
+      tab.addEventListener('click', function() { renderProducts(tab.getAttribute('data-cat')); });
+    });
+
+    document.getElementById('hamburger').addEventListener('click', function() {
+      document.getElementById('navMobile').classList.toggle('open');
+    });
+
+    updateBadge();
+    renderProducts('all');
+  </script>
+</body>
+</html>

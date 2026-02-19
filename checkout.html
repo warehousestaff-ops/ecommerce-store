@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout &mdash; Store.</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .checkout-layout {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 3rem 2.5rem 6rem;
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 3rem;
+      align-items: start;
+    }
+
+    .checkout-section-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1.5px solid var(--border);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    /* Order summary */
+    .checkout-summary {
+      background: var(--gray-50);
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      padding: 1.75rem;
+      position: sticky;
+      top: 80px;
+    }
+
+    .summary-title {
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.25rem;
+    }
+
+    .summary-items {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .summary-item {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .summary-item-img {
+      width: 48px;
+      height: 48px;
+      border-radius: 2px;
+      overflow: hidden;
+      background: var(--gray-100);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .summary-item-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .summary-item-qty {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: var(--black);
+      color: var(--white);
+      font-size: 0.58rem;
+      font-weight: 700;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .summary-item-name {
+      font-size: 0.84rem;
+      font-weight: 500;
+      flex: 1;
+    }
+
+    .summary-item-price {
+      font-size: 0.84rem;
+      font-weight: 600;
+    }
+
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.88rem;
+      color: var(--gray-600);
+      margin-bottom: 0.6rem;
+    }
+
+    .summary-line.total {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--black);
+      padding-top: 0.75rem;
+      border-top: 1.5px solid var(--border);
+      margin-top: 0.25rem;
+    }
+
+    @media (max-width: 900px) {
+      .checkout-layout { grid-template-columns: 1fr; }
+      .checkout-summary { position: static; order: -1; }
+    }
+
+    @media (max-width: 768px) {
+      .checkout-layout { padding: 2rem 1.25rem 4rem; gap: 2rem; }
+    }
+
+    @media (max-width: 540px) {
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="nav-logo">Store<span>.</span></a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="products.html">Products</a></li>
+      <li><a href="reviews.html">Reviews</a></li>
+    </ul>
+    <div class="nav-right">
+      <a href="cart.html" class="cart-link" aria-label="Cart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        <span class="cart-badge" id="cartBadge"></span>
+      </a>
+      <button class="nav-hamburger" id="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="nav-mobile" id="navMobile">
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="products.html">Products</a></li>
+      <li><a href="reviews.html">Reviews</a></li>
+      <li><a href="cart.html">Cart</a></li>
+    </ul>
+  </div>
+
+  <header class="page-header">
+    <h1>Checkout</h1>
+    <p>Complete your order below</p>
+  </header>
+
+  <div id="emptyCart" style="display:none">
+    <div class="empty-state">
+      <div class="empty-icon">&#128722;</div>
+      <h3>Nothing to checkout</h3>
+      <p>Your cart is empty. Add some products first.</p>
+      <a href="products.html" class="btn btn-primary">Browse Products</a>
+    </div>
+  </div>
+
+  <div class="checkout-layout" id="checkoutLayout">
+
+    <form id="checkoutForm" novalidate>
+      <div class="checkout-section-title">Contact Information</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="firstName">First Name</label>
+          <input type="text" id="firstName" placeholder="Jane" required />
+          <div class="error-msg" id="firstName-error">Please enter your first name.</div>
+        </div>
+        <div class="form-group">
+          <label for="lastName">Last Name</label>
+          <input type="text" id="lastName" placeholder="Smith" required />
+          <div class="error-msg" id="lastName-error">Please enter your last name.</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" placeholder="jane@example.com" required />
+        <div class="error-msg" id="email-error">Please enter a valid email address.</div>
+      </div>
+
+      <div class="checkout-section-title" style="margin-top:2rem;">Delivery Address</div>
+      <div class="form-group">
+        <label for="address">Street Address</label>
+        <input type="text" id="address" placeholder="123 High Street" required />
+        <div class="error-msg" id="address-error">Please enter your street address.</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="city">City</label>
+          <input type="text" id="city" placeholder="London" required />
+          <div class="error-msg" id="city-error">Please enter your city.</div>
+        </div>
+        <div class="form-group">
+          <label for="postcode">Postcode</label>
+          <input type="text" id="postcode" placeholder="SW1A 1AA" required />
+          <div class="error-msg" id="postcode-error">Please enter your postcode.</div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg" style="width:100%;margin-top:1rem;">Place Order</button>
+      <div style="text-align:center;margin-top:1rem;font-size:0.78rem;color:var(--gray-400);">
+        By placing your order you agree to our terms &amp; conditions.
+      </div>
+    </form>
+
+    <div class="checkout-summary">
+      <div class="summary-title">Your Order</div>
+      <div class="summary-items" id="summaryItems"></div>
+      <div class="summary-line"><span>Subtotal</span><span id="summarySubtotal"></span></div>
+      <div class="summary-line"><span>Delivery</span><span id="summaryDelivery"></span></div>
+      <div class="summary-line total"><span>Total</span><span id="summaryTotal"></span></div>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="footer-logo">Store<span>.</span></div>
+    <div class="footer-copy">&copy; 2026 Store. All rights reserved.</div>
+  </footer>
+
+  <script>
+    var SEED_PRODUCTS = [
+      { id: 'p1', name: 'Classic White Tee', price: 29.99, image: 'https://picsum.photos/seed/whitete/600/600', category: 'Clothing', featured: true },
+      { id: 'p2', name: 'Black Hoodie', price: 54.99, image: 'https://picsum.photos/seed/hoodie1/600/600', category: 'Clothing', featured: true },
+      { id: 'p3', name: 'Canvas Tote Bag', price: 19.99, image: 'https://picsum.photos/seed/totebag/600/600', category: 'Accessories', featured: true },
+      { id: 'p4', name: 'Slim Leather Wallet', price: 39.99, image: 'https://picsum.photos/seed/wallet1/600/600', category: 'Accessories', featured: true },
+      { id: 'p5', name: 'Minimal Watch', price: 89.99, image: 'https://picsum.photos/seed/watch1/600/600', category: 'Accessories', featured: false },
+      { id: 'p6', name: 'Ceramic Mug', price: 14.99, image: 'https://picsum.photos/seed/mug1/600/600', category: 'Home', featured: false },
+      { id: 'p7', name: 'Hardback Notebook', price: 16.99, image: 'https://picsum.photos/seed/notebook1/600/600', category: 'Stationery', featured: false },
+      { id: 'p8', name: 'Slim Chinos', price: 44.99, image: 'https://picsum.photos/seed/chinos1/600/600', category: 'Clothing', featured: false }
+    ];
+
+    function loadProducts() {
+      try { var s = localStorage.getItem('ec_products'); if (s) return JSON.parse(s); } catch(e) {}
+      localStorage.setItem('ec_products', JSON.stringify(SEED_PRODUCTS)); return SEED_PRODUCTS;
+    }
+
+    function loadCart() {
+      try { return JSON.parse(localStorage.getItem('ec_cart') || '[]'); } catch(e) { return []; }
+    }
+
+    function updateBadge() {
+      var count = loadCart().reduce(function(s,i) { return s + i.quantity; }, 0);
+      var b = document.getElementById('cartBadge');
+      if (b) { b.textContent = count; b.style.display = count > 0 ? 'flex' : 'none'; }
+    }
+
+    function getProductById(id) {
+      var products = loadProducts();
+      for (var i = 0; i < products.length; i++) { if (products[i].id === id) return products[i]; }
+      return null;
+    }
+
+    function setError(id, show) {
+      var el = document.getElementById(id);
+      var err = document.getElementById(id + '-error');
+      if (el) el.classList.toggle('error', show);
+      if (err) err.style.display = show ? 'block' : 'none';
+    }
+
+    function buildSummary() {
+      var cart = loadCart();
+      if (cart.length === 0) {
+        document.getElementById('checkoutLayout').style.display = 'none';
+        document.getElementById('emptyCart').style.display = 'block';
+        return;
+      }
+
+      var subtotal = 0;
+      var itemsHTML = '';
+
+      cart.forEach(function(item) {
+        var p = getProductById(item.productId);
+        if (!p) return;
+        var lineTotal = p.price * item.quantity;
+        subtotal += lineTotal;
+        itemsHTML +=
+          '<div class="summary-item">' +
+            '<div class="summary-item-img">' +
+              '<img src="' + p.image + '" alt="' + p.name + '" />' +
+              '<span class="summary-item-qty">' + item.quantity + '</span>' +
+            '</div>' +
+            '<div class="summary-item-name">' + p.name + '</div>' +
+            '<div class="summary-item-price">&pound;' + lineTotal.toFixed(2) + '</div>' +
+          '</div>';
+      });
+
+      document.getElementById('summaryItems').innerHTML = itemsHTML;
+
+      var delivery = subtotal >= 50 ? 0 : 4.99;
+      document.getElementById('summarySubtotal').textContent = '\u00a3' + subtotal.toFixed(2);
+      document.getElementById('summaryDelivery').textContent = delivery === 0 ? 'Free' : '\u00a3' + delivery.toFixed(2);
+      document.getElementById('summaryTotal').textContent = '\u00a3' + (subtotal + delivery).toFixed(2);
+    }
+
+    document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var valid = true;
+
+      var fields = [
+        { id: 'firstName',  validate: function(v) { return v.trim().length >= 1; } },
+        { id: 'lastName',   validate: function(v) { return v.trim().length >= 1; } },
+        { id: 'email',      validate: function(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); } },
+        { id: 'address',    validate: function(v) { return v.trim().length >= 3; } },
+        { id: 'city',       validate: function(v) { return v.trim().length >= 1; } },
+        { id: 'postcode',   validate: function(v) { return v.trim().length >= 2; } }
+      ];
+
+      fields.forEach(function(f) {
+        var el = document.getElementById(f.id);
+        if (!f.validate(el.value)) { setError(f.id, true); valid = false; }
+        else { setError(f.id, false); }
+      });
+
+      if (!valid) return;
+
+      var cart = loadCart();
+      var products = loadProducts();
+      var subtotal = 0;
+      var orderItems = [];
+
+      cart.forEach(function(item) {
+        var p = getProductById(item.productId);
+        if (!p) return;
+        subtotal += p.price * item.quantity;
+        orderItems.push({ productId: p.id, name: p.name, price: p.price, quantity: item.quantity });
+      });
+
+      var delivery = subtotal >= 50 ? 0 : 4.99;
+      var d = new Date();
+      var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+      var order = {
+        id:        Date.now().toString(),
+        name:      document.getElementById('firstName').value.trim() + ' ' + document.getElementById('lastName').value.trim(),
+        email:     document.getElementById('email').value.trim(),
+        address:   document.getElementById('address').value.trim() + ', ' + document.getElementById('city').value.trim() + ', ' + document.getElementById('postcode').value.trim().toUpperCase(),
+        items:     orderItems,
+        subtotal:  subtotal,
+        delivery:  delivery,
+        total:     subtotal + delivery,
+        date:      d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear(),
+        rawDate:   d.toISOString().split('T')[0],
+        status:    'pending'
+      };
+
+      var orders = [];
+      try { orders = JSON.parse(localStorage.getItem('ec_orders') || '[]'); } catch(err) {}
+      orders.push(order);
+      localStorage.setItem('ec_orders', JSON.stringify(orders));
+      localStorage.setItem('ec_last_order', JSON.stringify(order));
+      localStorage.removeItem('ec_cart');
+
+      window.location.href = 'confirmation.html';
+    });
+
+    ['firstName','lastName','email','address','city','postcode'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('input', function() { setError(id, false); });
+    });
+
+    document.getElementById('hamburger').addEventListener('click', function() {
+      document.getElementById('navMobile').classList.toggle('open');
+    });
+
+    updateBadge();
+    buildSummary();
+  </script>
+</body>
+</html>
