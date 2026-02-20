@@ -380,6 +380,10 @@
         <svg class="db-nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5l1.5 3.1 3.4.5-2.5 2.4.6 3.4L8 9.4l-3 1.5.6-3.4L3.1 5.1l3.4-.5z"/></svg>
         Reviews
       </button>
+      <button class="db-nav-btn" data-section="pl">
+        <svg class="db-nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13V5l6-3 6 3v8"/><path d="M8 13V8"/><path d="M5 10h6"/><rect x="2" y="10" width="12" height="3" rx="0.5"/></svg>
+        P&amp;L
+      </button>
     </nav>
     <div class="db-back"><a href="index.html">&#8592; Back to Store</a></div>
   </aside>
@@ -524,6 +528,78 @@
         <div class="db-review-grid" id="reviews-grid"></div>
       </div>
 
+      <!-- ── P&L ──────────────────────────────────── -->
+      <div class="db-section" id="sec-pl">
+        <div class="db-page-title">Profit &amp; Loss</div>
+        <div class="db-page-sub">Track revenue, expenses, and profitability</div>
+
+        <div class="stat-cards" style="grid-template-columns:repeat(3,1fr);">
+          <div class="stat-card green">
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-value" id="pl-revenue">&pound;0.00</div>
+            <div class="stat-note">From all orders</div>
+          </div>
+          <div class="stat-card" style="border-top-color:var(--red);">
+            <div class="stat-label">Total Expenses</div>
+            <div class="stat-value" id="pl-expenses">&pound;0.00</div>
+            <div class="stat-note">All recorded expenses</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label" id="pl-profit-label">Net Profit</div>
+            <div class="stat-value" id="pl-profit">&pound;0.00</div>
+            <div class="stat-note">Revenue minus expenses</div>
+          </div>
+        </div>
+
+        <div class="db-panel">
+          <div class="db-panel-head"><div class="db-panel-title">Add Expense</div></div>
+          <div class="db-panel-body">
+            <form id="addExpenseForm" novalidate>
+              <div class="db-form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                <div class="db-form-group">
+                  <label for="expName">Expense Name</label>
+                  <input type="text" id="expName" placeholder="e.g. Rent, Stock, Packaging" required />
+                </div>
+                <div class="db-form-group">
+                  <label for="expAmount">Amount (&pound;)</label>
+                  <input type="number" id="expAmount" placeholder="e.g. 150.00" min="0" step="0.01" required />
+                </div>
+                <div class="db-form-group">
+                  <label for="expDate">Date</label>
+                  <input type="date" id="expDate" required />
+                </div>
+              </div>
+              <div class="db-submit">
+                <button type="submit" class="db-btn">Add Expense</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="db-panel">
+          <div class="db-panel-head">
+            <div class="db-panel-title">All Expenses</div>
+            <span style="font-size:0.72rem;color:var(--g400);" id="pl-expenses-count"></span>
+          </div>
+          <div class="db-table-wrap">
+            <table class="db-table">
+              <thead><tr><th>Name</th><th>Amount</th><th>Date</th><th>Action</th></tr></thead>
+              <tbody id="pl-expenses-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="db-panel">
+          <div class="db-panel-head"><div class="db-panel-title">Monthly Breakdown</div></div>
+          <div class="db-table-wrap">
+            <table class="db-table">
+              <thead><tr><th>Month</th><th>Revenue</th><th>Expenses</th><th>Profit / Loss</th></tr></thead>
+              <tbody id="pl-monthly-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -579,7 +655,7 @@
     })();
 
     /* ── Section nav ──────────────────────────────── */
-    var titles = { overview:'Overview', products:'Products', orders:'Orders', reviews:'Reviews' };
+    var titles = { overview:'Overview', products:'Products', orders:'Orders', reviews:'Reviews', pl:'P&L' };
 
     document.querySelectorAll('.db-nav-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
@@ -593,6 +669,7 @@
         if (t === 'products') renderProducts();
         if (t === 'orders')   renderOrders();
         if (t === 'reviews')  renderReviews();
+        if (t === 'pl')       renderPL();
       });
     });
 
@@ -770,6 +847,110 @@
           '<p class="db-review-comment">' + esc(r.comment) + '</p>' +
         '</div>';
       }).join('');
+    }
+
+    /* ── P&L ──────────────────────────────────────── */
+    function loadExpenses()  { try { return JSON.parse(localStorage.getItem('ec_expenses') || '[]'); } catch(e) { return []; } }
+    function saveExpenses(a) { localStorage.setItem('ec_expenses', JSON.stringify(a)); }
+
+    function deleteExpense(id) {
+      if (!confirm('Delete this expense?')) return;
+      saveExpenses(loadExpenses().filter(function(e) { return e.id !== id; }));
+      renderPL();
+      showToast('Expense deleted');
+    }
+
+    document.getElementById('addExpenseForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var name   = document.getElementById('expName').value.trim();
+      var amount = parseFloat(document.getElementById('expAmount').value);
+      var date   = document.getElementById('expDate').value;
+      if (!name || isNaN(amount) || amount < 0 || !date) { showToast('Please fill in all expense fields.'); return; }
+      var expenses = loadExpenses();
+      expenses.push({ id: Date.now().toString(), name: name, amount: amount, date: date });
+      saveExpenses(expenses);
+      this.reset();
+      renderPL();
+      showToast('Expense added');
+    });
+
+    function renderPL() {
+      var orders   = loadOrders();
+      var expenses = loadExpenses();
+
+      var totalRevenue  = orders.reduce(function(s, o) { return s + (o.total || 0); }, 0);
+      var totalExpenses = expenses.reduce(function(s, e) { return s + (e.amount || 0); }, 0);
+      var netProfit     = totalRevenue - totalExpenses;
+
+      document.getElementById('pl-revenue').textContent  = '\u00a3' + totalRevenue.toFixed(2);
+      document.getElementById('pl-expenses').textContent = '\u00a3' + totalExpenses.toFixed(2);
+
+      var profitEl = document.getElementById('pl-profit');
+      profitEl.textContent = (netProfit < 0 ? '-' : '') + '\u00a3' + Math.abs(netProfit).toFixed(2);
+      profitEl.style.color = netProfit >= 0 ? 'var(--green)' : 'var(--red)';
+      document.getElementById('pl-profit-label').textContent = netProfit >= 0 ? 'Net Profit' : 'Net Loss';
+      document.getElementById('pl-profit').closest('.stat-card').style.borderTopColor = netProfit >= 0 ? 'var(--green)' : 'var(--red)';
+
+      /* Expenses table */
+      var ecountLabel = document.getElementById('pl-expenses-count');
+      ecountLabel.textContent = expenses.length + ' expense' + (expenses.length !== 1 ? 's' : '');
+      var etbody = document.getElementById('pl-expenses-tbody');
+
+      var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      function fmtDate(ym) {
+        var parts = ym.split('-');
+        return monthNames[parseInt(parts[1],10)-1] + ' ' + parts[0];
+      }
+
+      if (expenses.length === 0) {
+        etbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--g400);padding:2.5rem;">No expenses added yet</td></tr>';
+      } else {
+        etbody.innerHTML = expenses.slice().reverse().map(function(e) {
+          var parts = e.date ? e.date.split('-') : null;
+          var dateLabel = parts ? fmtDate(e.date.slice(0,7)) + ' ' + parseInt(parts[2],10) : esc(e.date);
+          return '<tr>' +
+            '<td class="td-main">' + esc(e.name) + '</td>' +
+            '<td>\u00a3' + (e.amount || 0).toFixed(2) + '</td>' +
+            '<td>' + esc(e.date) + '</td>' +
+            '<td><button class="btn-action del" onclick="deleteExpense(\'' + e.id + '\')">Delete</button></td>' +
+            '</tr>';
+        }).join('');
+      }
+
+      /* Monthly breakdown */
+      var monthly = {};
+      orders.forEach(function(o) {
+        var ym = o.rawDate ? o.rawDate.slice(0,7) : null;
+        if (!ym) return;
+        if (!monthly[ym]) monthly[ym] = { revenue: 0, expenses: 0 };
+        monthly[ym].revenue += (o.total || 0);
+      });
+      expenses.forEach(function(e) {
+        var ym = e.date ? e.date.slice(0,7) : null;
+        if (!ym) return;
+        if (!monthly[ym]) monthly[ym] = { revenue: 0, expenses: 0 };
+        monthly[ym].expenses += (e.amount || 0);
+      });
+
+      var keys   = Object.keys(monthly).sort().reverse();
+      var mtbody = document.getElementById('pl-monthly-tbody');
+
+      if (keys.length === 0) {
+        mtbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--g400);padding:2.5rem;">No data yet</td></tr>';
+      } else {
+        mtbody.innerHTML = keys.map(function(ym) {
+          var rev    = monthly[ym].revenue;
+          var exp    = monthly[ym].expenses;
+          var profit = rev - exp;
+          var pStyle = profit >= 0 ? 'color:var(--green);font-weight:600;' : 'color:var(--red);font-weight:600;';
+          return '<tr>' +
+            '<td class="td-main">' + fmtDate(ym) + '</td>' +
+            '<td>\u00a3' + rev.toFixed(2) + '</td>' +
+            '<td>\u00a3' + exp.toFixed(2) + '</td>' +
+            '<td style="' + pStyle + '">' + (profit < 0 ? '-' : '') + '\u00a3' + Math.abs(profit).toFixed(2) + '</td>' +
+            '</tr>';
+        }).join('');
+      }
     }
 
     /* ── Init ─────────────────────────────────────── */
