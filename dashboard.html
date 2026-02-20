@@ -615,6 +615,45 @@
           </div>
         </div>
 
+        <!-- Order Analytics -->
+        <div class="db-panel">
+          <div class="db-panel-head"><div class="db-panel-title">Order Analytics</div></div>
+          <div class="db-panel-body" style="padding-bottom:0;">
+            <div class="stat-cards" style="grid-template-columns:repeat(4,1fr);margin-bottom:0;">
+              <div class="stat-card">
+                <div class="stat-label">Total Orders</div>
+                <div class="stat-value" id="oa-count">0</div>
+                <div class="stat-note">All time</div>
+              </div>
+              <div class="stat-card blue">
+                <div class="stat-label">Avg Order Value</div>
+                <div class="stat-value" id="oa-avg">&pound;&mdash;</div>
+                <div class="stat-note">Per order</div>
+              </div>
+              <div class="stat-card green">
+                <div class="stat-label">Highest Order</div>
+                <div class="stat-value" id="oa-high">&pound;&mdash;</div>
+                <div class="stat-note">Single order</div>
+              </div>
+              <div class="stat-card" style="border-top-color:var(--red);">
+                <div class="stat-label">Lowest Order</div>
+                <div class="stat-value" id="oa-low">&pound;&mdash;</div>
+                <div class="stat-note">Single order</div>
+              </div>
+            </div>
+          </div>
+          <div class="db-panel-head" style="border-top:1px solid var(--border);margin-top:1.5rem;">
+            <div class="db-panel-title">Volume vs Value &mdash; Weekly</div>
+            <span style="font-size:0.72rem;color:var(--g400);">Avg order value: <span style="color:var(--green);">&#9646;</span> above avg &nbsp;<span style="color:var(--red);">&#9646;</span> below avg</span>
+          </div>
+          <div class="db-table-wrap">
+            <table class="db-table">
+              <thead><tr><th>Week</th><th>Orders</th><th>Revenue</th><th>Avg Order Value</th></tr></thead>
+              <tbody id="oa-weekly-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="db-panel">
           <div class="db-panel-head">
             <div class="db-panel-title">Breakdown</div>
@@ -1029,6 +1068,53 @@
             '<td>\u00a3' + (e.amount || 0).toFixed(2) + '</td>' +
             '<td>' + esc(e.date) + '</td>' +
             '<td><button class="btn-action del" onclick="deleteExpense(\'' + e.id + '\')">Delete</button></td>' +
+            '</tr>';
+        }).join('');
+      }
+
+      /* ── Order Analytics ── */
+      var overallAvg = orders.length ? totalRevenue / orders.length : 0;
+      document.getElementById('oa-count').textContent = orders.length;
+      document.getElementById('oa-avg').textContent   = orders.length ? '\u00a3' + overallAvg.toFixed(2) : '\u00a3\u2014';
+
+      if (orders.length) {
+        var vals = orders.map(function(o) { return o.total || 0; });
+        document.getElementById('oa-high').textContent = '\u00a3' + Math.max.apply(null, vals).toFixed(2);
+        document.getElementById('oa-low').textContent  = '\u00a3' + Math.min.apply(null, vals).toFixed(2);
+      } else {
+        document.getElementById('oa-high').textContent = '\u00a3\u2014';
+        document.getElementById('oa-low').textContent  = '\u00a3\u2014';
+      }
+
+      /* Weekly volume vs value table */
+      var weekBuckets = {};
+      orders.forEach(function(o) {
+        if (!o.rawDate) return;
+        var k = isoWeekKey(o.rawDate);
+        if (!weekBuckets[k]) weekBuckets[k] = { count: 0, revenue: 0 };
+        weekBuckets[k].count++;
+        weekBuckets[k].revenue += (o.total || 0);
+      });
+
+      var wKeys   = Object.keys(weekBuckets).sort().reverse();
+      var oaTbody = document.getElementById('oa-weekly-tbody');
+
+      if (wKeys.length === 0) {
+        oaTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--g400);padding:2.5rem;">No orders yet</td></tr>';
+      } else {
+        oaTbody.innerHTML = wKeys.map(function(k) {
+          var b      = weekBuckets[k];
+          var wAvg   = b.revenue / b.count;
+          var p      = k.split('-W');
+          var label  = 'Week\u00a0' + parseInt(p[1], 10) + '\u2002' + p[0];
+          var above  = wAvg >= overallAvg;
+          var avgCol = above ? 'color:var(--green);font-weight:700;' : 'color:var(--red);font-weight:700;';
+          var rowBg  = above ? 'background:rgba(22,163,74,0.04);' : 'background:rgba(220,38,38,0.04);';
+          return '<tr style="' + rowBg + '">' +
+            '<td class="td-main">' + label + '</td>' +
+            '<td>' + b.count + '</td>' +
+            '<td>\u00a3' + b.revenue.toFixed(2) + '</td>' +
+            '<td style="' + avgCol + '">\u00a3' + wAvg.toFixed(2) + '</td>' +
             '</tr>';
         }).join('');
       }
