@@ -557,6 +557,14 @@
       rewards[emailLower] = useReward ? Math.max(0, prev - 10) + 1 : prev + 1;
       saveRewards(rewards);
 
+      /* Log redemption */
+      if (useReward) {
+        var redemptions = [];
+        try { redemptions = JSON.parse(localStorage.getItem('ec_reward_redemptions') || '[]'); } catch(e) {}
+        redemptions.push({ email: emailLower, date: d.toISOString().split('T')[0], cost: 4.99 });
+        localStorage.setItem('ec_reward_redemptions', JSON.stringify(redemptions));
+      }
+
       window.location.href = 'confirmation.html';
     });
 

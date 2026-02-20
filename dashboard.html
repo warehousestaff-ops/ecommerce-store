@@ -781,6 +781,24 @@
           </div>
         </div>
 
+        <div class="stat-cards" style="grid-template-columns:repeat(3,1fr);">
+          <div class="stat-card">
+            <div class="stat-label">Times Redeemed</div>
+            <div class="stat-value" id="pts-redemptions">0</div>
+            <div class="stat-note">Free delivery used</div>
+          </div>
+          <div class="stat-card" style="border-top-color:var(--red);">
+            <div class="stat-label">Total Cost to Business</div>
+            <div class="stat-value" id="pts-cost">&pound;0.00</div>
+            <div class="stat-note">&pound;4.99 per redemption</div>
+          </div>
+          <div class="stat-card" style="border-top-color:var(--red);">
+            <div class="stat-label">% Revenue Lost</div>
+            <div class="stat-value" id="pts-pct">0.0%</div>
+            <div class="stat-note">Of total order revenue</div>
+          </div>
+        </div>
+
         <div class="db-panel">
           <div class="db-panel-head">
             <div class="db-panel-title">All Customers</div>
@@ -790,6 +808,19 @@
             <table class="db-table">
               <thead><tr><th>Email</th><th>Points</th><th>Progress to Reward</th><th>Status</th></tr></thead>
               <tbody id="pts-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="db-panel">
+          <div class="db-panel-head">
+            <div class="db-panel-title">Redemption History</div>
+            <span style="font-size:0.72rem;color:var(--g400);" id="pts-redemptions-label"></span>
+          </div>
+          <div class="db-table-wrap">
+            <table class="db-table">
+              <thead><tr><th>Customer Email</th><th>Date</th><th>Cost to Business</th></tr></thead>
+              <tbody id="pts-redemptions-tbody"></tbody>
             </table>
           </div>
         </div>
@@ -1415,49 +1446,78 @@
     }
 
     /* ── Rewards ──────────────────────────────────── */
-    function loadRewards() { try { return JSON.parse(localStorage.getItem('ec_rewards') || '{}'); } catch(e) { return {}; } }
+    function loadRewards()      { try { return JSON.parse(localStorage.getItem('ec_rewards')              || '{}'); } catch(e) { return {}; } }
+    function loadRedemptions()  { try { return JSON.parse(localStorage.getItem('ec_reward_redemptions') || '[]'); } catch(e) { return []; } }
 
     function renderPoints() {
-      var rewards = loadRewards();
-      var emails  = Object.keys(rewards).filter(function(e) { return (rewards[e] || 0) > 0; });
+      var rewards     = loadRewards();
+      var redemptions = loadRedemptions();
+      var orders      = loadOrders();
+      var emails      = Object.keys(rewards).filter(function(e) { return (rewards[e] || 0) > 0; });
 
+      /* Points stats */
       document.getElementById('pts-customers').textContent = emails.length;
       document.getElementById('pts-total').textContent     = emails.reduce(function(s, e) { return s + (rewards[e] || 0); }, 0);
       document.getElementById('pts-ready').textContent     = emails.filter(function(e) { return (rewards[e] || 0) >= 10; }).length;
       document.getElementById('pts-count-label').textContent = emails.length + ' customer' + (emails.length !== 1 ? 's' : '');
 
+      /* Redemption stats */
+      var totalRedemptions = redemptions.length;
+      var totalCost        = totalRedemptions * 4.99;
+      var totalRevenue     = orders.reduce(function(s, o) { return s + (o.total || 0); }, 0);
+      var pct              = totalRevenue > 0 ? ((totalCost / totalRevenue) * 100).toFixed(1) : '0.0';
+
+      document.getElementById('pts-redemptions').textContent = totalRedemptions;
+      document.getElementById('pts-cost').textContent        = '\u00a3' + totalCost.toFixed(2);
+      document.getElementById('pts-pct').textContent         = pct + '%';
+
+      /* All customers table */
       var tbody = document.getElementById('pts-tbody');
 
       if (emails.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--g400);padding:2.5rem;">No rewards points yet &mdash; points are awarded when customers place orders</td></tr>';
-        return;
+      } else {
+        emails.sort(function(a, b) { return (rewards[b] || 0) - (rewards[a] || 0); });
+
+        tbody.innerHTML = emails.map(function(email) {
+          var pts    = rewards[email] || 0;
+          var pct    = Math.min(100, Math.round((pts / 10) * 100));
+          var ready  = pts >= 10;
+          var barCol = ready ? 'var(--green)' : (pts >= 7 ? 'var(--amber)' : 'var(--blue)');
+          var badge  = ready
+            ? '<span class="badge badge-confirmed">Ready to Redeem</span>'
+            : '<span class="badge badge-pending">' + (10 - pts) + ' more to go</span>';
+          var progress =
+            '<div style="display:flex;align-items:center;gap:0.6rem;">' +
+              '<div style="flex:1;height:6px;background:var(--g200);border-radius:100px;overflow:hidden;">' +
+                '<div style="height:100%;width:' + pct + '%;background:' + barCol + ';border-radius:100px;"></div>' +
+              '</div>' +
+              '<span style="font-size:0.72rem;color:var(--g400);white-space:nowrap;">' + pts + ' / 10</span>' +
+            '</div>';
+          return '<tr>' +
+            '<td class="td-main">' + esc(email) + '</td>' +
+            '<td style="font-weight:700;font-size:1rem;">' + pts + '</td>' +
+            '<td style="min-width:180px;">' + progress + '</td>' +
+            '<td>' + badge + '</td>' +
+            '</tr>';
+        }).join('');
       }
 
-      /* Sort by points descending */
-      emails.sort(function(a, b) { return (rewards[b] || 0) - (rewards[a] || 0); });
+      /* Redemption history table */
+      document.getElementById('pts-redemptions-label').textContent = totalRedemptions + ' redemption' + (totalRedemptions !== 1 ? 's' : '');
+      var rTbody = document.getElementById('pts-redemptions-tbody');
 
-      tbody.innerHTML = emails.map(function(email) {
-        var pts     = rewards[email] || 0;
-        var pct     = Math.min(100, Math.round((pts / 10) * 100));
-        var ready   = pts >= 10;
-        var barCol  = ready ? 'var(--green)' : (pts >= 7 ? 'var(--amber)' : 'var(--blue)');
-        var badge   = ready
-          ? '<span class="badge badge-confirmed">Ready to Redeem</span>'
-          : '<span class="badge badge-pending">' + (10 - pts) + ' more to go</span>';
-        var progress =
-          '<div style="display:flex;align-items:center;gap:0.6rem;">' +
-            '<div style="flex:1;height:6px;background:var(--g200);border-radius:100px;overflow:hidden;">' +
-              '<div style="height:100%;width:' + pct + '%;background:' + barCol + ';border-radius:100px;transition:width 0.3s;"></div>' +
-            '</div>' +
-            '<span style="font-size:0.72rem;color:var(--g400);white-space:nowrap;">' + pts + ' / 10</span>' +
-          '</div>';
-        return '<tr>' +
-          '<td class="td-main">' + esc(email) + '</td>' +
-          '<td style="font-weight:700;font-size:1rem;">' + pts + '</td>' +
-          '<td style="min-width:180px;">' + progress + '</td>' +
-          '<td>' + badge + '</td>' +
-          '</tr>';
-      }).join('');
+      if (redemptions.length === 0) {
+        rTbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--g400);padding:2.5rem;">No redemptions yet</td></tr>';
+      } else {
+        rTbody.innerHTML = redemptions.slice().reverse().map(function(r) {
+          return '<tr>' +
+            '<td class="td-main">' + esc(r.email) + '</td>' +
+            '<td>' + esc(r.date) + '</td>' +
+            '<td style="color:var(--red);font-weight:600;">\u00a3' + (r.cost || 4.99).toFixed(2) + '</td>' +
+            '</tr>';
+        }).join('');
+      }
     }
 
     /* ── Init ─────────────────────────────────────── */
