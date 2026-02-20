@@ -136,6 +136,91 @@
     @media (max-width: 540px) {
       .form-row { grid-template-columns: 1fr; }
     }
+
+    /* Rewards */
+    .rewards-check-panel {
+      background: #F0FDF4;
+      border: 1.5px solid #BBF7D0;
+      border-radius: 4px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .rewards-check-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #15803D;
+      margin-bottom: 0.75rem;
+    }
+
+    .rewards-check-row { display: flex; gap: 0.5rem; }
+
+    .rewards-check-row input {
+      flex: 1;
+      padding: 0.6rem 0.85rem;
+      border: 1.5px solid #BBF7D0;
+      border-radius: 3px;
+      font-family: inherit;
+      font-size: 0.84rem;
+      outline: none;
+      background: #fff;
+    }
+
+    .rewards-check-row input:focus { border-color: #16A34A; }
+
+    .rewards-check-btn {
+      background: #16A34A;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      padding: 0 1.1rem;
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .rewards-check-btn:hover { background: #15803D; }
+    .rewards-check-result { margin-top: 0.6rem; font-size: 0.82rem; min-height: 1.1em; }
+
+    .email-rewards-notice {
+      display: none;
+      margin-top: 0.5rem;
+      padding: 0.6rem 0.85rem;
+      border-radius: 3px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .reward-redeem-box {
+      display: none;
+      margin-top: 0.75rem;
+      padding: 0.85rem 1rem;
+      background: #F0FDF4;
+      border: 1.5px solid #BBF7D0;
+      border-radius: 4px;
+    }
+
+    .reward-redeem-box label {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #15803D;
+    }
+
+    .reward-redeem-box input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #16A34A;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -184,6 +269,17 @@
   <div class="checkout-layout" id="checkoutLayout">
 
     <form id="checkoutForm" novalidate>
+
+      <!-- Check points balance -->
+      <div class="rewards-check-panel">
+        <div class="rewards-check-title">&#127873; Check Your Rewards Points</div>
+        <div class="rewards-check-row">
+          <input type="email" id="rewardsCheckEmail" placeholder="Enter your email to check your balance" />
+          <button type="button" class="rewards-check-btn" onclick="checkPointsBalance()">Check</button>
+        </div>
+        <div class="rewards-check-result" id="rewardsCheckResult"></div>
+      </div>
+
       <div class="checkout-section-title">Contact Information</div>
       <div class="form-row">
         <div class="form-group">
@@ -201,6 +297,13 @@
         <label for="email">Email Address</label>
         <input type="email" id="email" placeholder="jane@example.com" required />
         <div class="error-msg" id="email-error">Please enter a valid email address.</div>
+        <div class="email-rewards-notice" id="emailRewardsNotice"></div>
+        <div class="reward-redeem-box" id="rewardRedeemBox">
+          <label>
+            <input type="checkbox" id="useRewardCheckbox" onchange="toggleReward()" />
+            Use 10 points for free delivery &mdash; saves &pound;4.99
+          </label>
+        </div>
       </div>
 
       <div class="checkout-section-title" style="margin-top:2rem;">Delivery Address</div>
@@ -283,6 +386,75 @@
       if (err) err.style.display = show ? 'block' : 'none';
     }
 
+    /* ── Rewards ── */
+    var rewardApplied  = false;
+    var currentSubtotal = 0;
+
+    function loadRewards()      { try { return JSON.parse(localStorage.getItem('ec_rewards') || '{}'); } catch(e) { return {}; } }
+    function saveRewards(obj)   { localStorage.setItem('ec_rewards', JSON.stringify(obj)); }
+    function getPoints(email)   { var r = loadRewards(); return r[email.toLowerCase().trim()] || 0; }
+
+    function checkPointsBalance() {
+      var email  = document.getElementById('rewardsCheckEmail').value.trim();
+      var result = document.getElementById('rewardsCheckResult');
+      if (!email) { result.style.color = '#CC0000'; result.textContent = 'Please enter an email address.'; return; }
+      var pts = getPoints(email);
+      if (pts === 0) {
+        result.style.color = '#666';
+        result.textContent = 'No points found for ' + email + '. Points are earned when you place an order.';
+      } else if (pts >= 10) {
+        result.style.color = '#15803D';
+        result.innerHTML = '<strong>' + pts + ' points</strong> \u2014 you qualify for free delivery on your next order!';
+      } else {
+        result.style.color = '#15803D';
+        result.innerHTML = '<strong>' + pts + ' point' + (pts !== 1 ? 's' : '') + '</strong> \u2014 ' + (10 - pts) + ' more to unlock free delivery.';
+      }
+    }
+
+    function checkEmailRewards() {
+      var email    = document.getElementById('email').value.trim();
+      var notice   = document.getElementById('emailRewardsNotice');
+      var redeemBox = document.getElementById('rewardRedeemBox');
+
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        notice.style.display = 'none';
+        redeemBox.style.display = 'none';
+        return;
+      }
+
+      var pts = getPoints(email);
+      notice.style.display = 'block';
+
+      if (pts >= 10) {
+        notice.textContent = 'You have ' + pts + ' points \u2014 you qualify for free delivery!';
+        notice.style.background = '#F0FDF4';
+        notice.style.color = '#15803D';
+        redeemBox.style.display = 'block';
+      } else if (pts > 0) {
+        notice.textContent = 'You have ' + pts + ' point' + (pts !== 1 ? 's' : '') + '. ' + (10 - pts) + ' more needed for free delivery.';
+        notice.style.background = '#FAFAFA';
+        notice.style.color = '#666';
+        redeemBox.style.display = 'none';
+        if (rewardApplied) { document.getElementById('useRewardCheckbox').checked = false; toggleReward(); }
+      } else {
+        notice.textContent = 'No points yet \u2014 earn 1 point with this order!';
+        notice.style.background = '#FAFAFA';
+        notice.style.color = '#888';
+        redeemBox.style.display = 'none';
+      }
+    }
+
+    function toggleReward() {
+      rewardApplied = document.getElementById('useRewardCheckbox').checked;
+      updateSummaryDelivery();
+    }
+
+    function updateSummaryDelivery() {
+      var delivery = (currentSubtotal >= 50 || rewardApplied) ? 0 : 4.99;
+      document.getElementById('summaryDelivery').textContent = delivery === 0 ? 'Free' : '\u00a3' + delivery.toFixed(2);
+      document.getElementById('summaryTotal').textContent    = '\u00a3' + (currentSubtotal + delivery).toFixed(2);
+    }
+
     function buildSummary() {
       var cart = loadCart();
       if (cart.length === 0) {
@@ -312,7 +484,8 @@
 
       document.getElementById('summaryItems').innerHTML = itemsHTML;
 
-      var delivery = subtotal >= 50 ? 0 : 4.99;
+      currentSubtotal = subtotal;
+      var delivery = (subtotal >= 50 || rewardApplied) ? 0 : 4.99;
       document.getElementById('summarySubtotal').textContent = '\u00a3' + subtotal.toFixed(2);
       document.getElementById('summaryDelivery').textContent = delivery === 0 ? 'Free' : '\u00a3' + delivery.toFixed(2);
       document.getElementById('summaryTotal').textContent = '\u00a3' + (subtotal + delivery).toFixed(2);
@@ -351,7 +524,9 @@
         orderItems.push({ productId: p.id, name: p.name, price: p.price, quantity: item.quantity });
       });
 
-      var delivery = subtotal >= 50 ? 0 : 4.99;
+      var emailLower = document.getElementById('email').value.trim().toLowerCase();
+      var useReward  = rewardApplied && getPoints(emailLower) >= 10;
+      var delivery   = (subtotal >= 50 || useReward) ? 0 : 4.99;
       var d = new Date();
       var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -376,6 +551,12 @@
       localStorage.setItem('ec_last_order', JSON.stringify(order));
       localStorage.removeItem('ec_cart');
 
+      /* Award rewards point */
+      var rewards = loadRewards();
+      var prev    = rewards[emailLower] || 0;
+      rewards[emailLower] = useReward ? Math.max(0, prev - 10) + 1 : prev + 1;
+      saveRewards(rewards);
+
       window.location.href = 'confirmation.html';
     });
 
@@ -383,6 +564,9 @@
       var el = document.getElementById(id);
       if (el) el.addEventListener('input', function() { setError(id, false); });
     });
+
+    document.getElementById('email').addEventListener('input', checkEmailRewards);
+    document.getElementById('email').addEventListener('blur',  checkEmailRewards);
 
     document.getElementById('hamburger').addEventListener('click', function() {
       document.getElementById('navMobile').classList.toggle('open');
