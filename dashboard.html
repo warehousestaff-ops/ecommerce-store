@@ -581,14 +581,43 @@
           </div>
         </div>
 
+        <!-- Category summary -->
+        <div class="stat-cards" style="grid-template-columns:repeat(4,1fr);">
+          <div class="stat-card">
+            <div class="stat-label">Stock</div>
+            <div class="stat-value" id="pl-cat-stock" style="font-size:1.5rem;">&pound;0.00</div>
+            <div class="stat-note">Total spent</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Wages</div>
+            <div class="stat-value" id="pl-cat-wages" style="font-size:1.5rem;">&pound;0.00</div>
+            <div class="stat-note">Total spent</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Rent</div>
+            <div class="stat-value" id="pl-cat-rent" style="font-size:1.5rem;">&pound;0.00</div>
+            <div class="stat-note">Total spent</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Utilities</div>
+            <div class="stat-value" id="pl-cat-utilities" style="font-size:1.5rem;">&pound;0.00</div>
+            <div class="stat-note">Total spent</div>
+          </div>
+        </div>
+
         <div class="db-panel">
           <div class="db-panel-head"><div class="db-panel-title">Add Expense</div></div>
           <div class="db-panel-body">
             <form id="addExpenseForm" novalidate>
               <div class="db-form-grid" style="grid-template-columns:1fr 1fr 1fr;">
                 <div class="db-form-group">
-                  <label for="expName">Expense Name</label>
-                  <input type="text" id="expName" placeholder="e.g. Rent, Stock, Packaging" required />
+                  <label for="expCategory">Category</label>
+                  <select id="expCategory" required>
+                    <option value="Stock">Stock</option>
+                    <option value="Wages">Wages</option>
+                    <option value="Rent">Rent</option>
+                    <option value="Utilities">Utilities</option>
+                  </select>
                 </div>
                 <div class="db-form-group">
                   <label for="expAmount">Amount (&pound;)</label>
@@ -613,7 +642,7 @@
           </div>
           <div class="db-table-wrap">
             <table class="db-table">
-              <thead><tr><th>Name</th><th>Amount</th><th>Date</th><th>Action</th></tr></thead>
+              <thead><tr><th>Category</th><th>Amount</th><th>Date</th><th>Action</th></tr></thead>
               <tbody id="pl-expenses-tbody"></tbody>
             </table>
           </div>
@@ -669,7 +698,7 @@
           </div>
           <div class="db-table-wrap">
             <table class="db-table">
-              <thead><tr><th id="pl-period-col">Week</th><th>Revenue</th><th>Expenses</th><th>Profit / Loss</th></tr></thead>
+              <thead><tr><th id="pl-period-col">Week</th><th>Revenue</th><th>Stock</th><th>Wages</th><th>Rent</th><th>Utilities</th><th>Total Exp.</th><th>Profit / Loss</th></tr></thead>
               <tbody id="pl-breakdown-tbody"></tbody>
             </table>
           </div>
@@ -1094,14 +1123,16 @@
       showToast('Expense deleted');
     }
 
+    var EXP_CATS = ['Stock', 'Wages', 'Rent', 'Utilities'];
+
     document.getElementById('addExpenseForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      var name   = document.getElementById('expName').value.trim();
-      var amount = parseFloat(document.getElementById('expAmount').value);
-      var date   = document.getElementById('expDate').value;
-      if (!name || isNaN(amount) || amount < 0 || !date) { showToast('Please fill in all expense fields.'); return; }
+      var category = document.getElementById('expCategory').value;
+      var amount   = parseFloat(document.getElementById('expAmount').value);
+      var date     = document.getElementById('expDate').value;
+      if (!category || isNaN(amount) || amount < 0 || !date) { showToast('Please fill in all expense fields.'); return; }
       var expenses = loadExpenses();
-      expenses.push({ id: Date.now().toString(), name: name, amount: amount, date: date });
+      expenses.push({ id: Date.now().toString(), category: category, amount: amount, date: date });
       saveExpenses(expenses);
       this.reset();
       renderPL();
@@ -1125,25 +1156,29 @@
       document.getElementById('pl-profit-label').textContent = netProfit >= 0 ? 'Net Profit' : 'Net Loss';
       document.getElementById('pl-profit').closest('.stat-card').style.borderTopColor = netProfit >= 0 ? 'var(--green)' : 'var(--red)';
 
+      /* Category breakdown summary */
+      var catTotals = { Stock: 0, Wages: 0, Rent: 0, Utilities: 0 };
+      expenses.forEach(function(e) {
+        var cat = e.category || e.name || '';
+        if (catTotals[cat] !== undefined) catTotals[cat] += (e.amount || 0);
+      });
+      document.getElementById('pl-cat-stock').textContent     = '\u00a3' + catTotals.Stock.toFixed(2);
+      document.getElementById('pl-cat-wages').textContent     = '\u00a3' + catTotals.Wages.toFixed(2);
+      document.getElementById('pl-cat-rent').textContent      = '\u00a3' + catTotals.Rent.toFixed(2);
+      document.getElementById('pl-cat-utilities').textContent = '\u00a3' + catTotals.Utilities.toFixed(2);
+
       /* Expenses table */
       var ecountLabel = document.getElementById('pl-expenses-count');
       ecountLabel.textContent = expenses.length + ' expense' + (expenses.length !== 1 ? 's' : '');
       var etbody = document.getElementById('pl-expenses-tbody');
 
-      var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      function fmtDate(ym) {
-        var parts = ym.split('-');
-        return monthNames[parseInt(parts[1],10)-1] + ' ' + parts[0];
-      }
-
       if (expenses.length === 0) {
         etbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--g400);padding:2.5rem;">No expenses added yet</td></tr>';
       } else {
         etbody.innerHTML = expenses.slice().reverse().map(function(e) {
-          var parts = e.date ? e.date.split('-') : null;
-          var dateLabel = parts ? fmtDate(e.date.slice(0,7)) + ' ' + parseInt(parts[2],10) : esc(e.date);
+          var catLabel = e.category || e.name || '—';
           return '<tr>' +
-            '<td class="td-main">' + esc(e.name) + '</td>' +
+            '<td class="td-main">' + esc(catLabel) + '</td>' +
             '<td>\u00a3' + (e.amount || 0).toFixed(2) + '</td>' +
             '<td>' + esc(e.date) + '</td>' +
             '<td><button class="btn-action del" onclick="deleteExpense(\'' + e.id + '\')">Delete</button></td>' +
@@ -1253,51 +1288,63 @@
         return dateStr.slice(0, 4);
       }
 
+      function emptyBucket() { return { revenue: 0, Stock: 0, Wages: 0, Rent: 0, Utilities: 0 }; }
+
       var buckets = {};
       orders.forEach(function(o) {
         var k = keyFor(o.rawDate);
         if (!k) return;
-        if (!buckets[k]) buckets[k] = { revenue: 0, expenses: 0 };
+        if (!buckets[k]) buckets[k] = emptyBucket();
         buckets[k].revenue += (o.total || 0);
       });
       expenses.forEach(function(e) {
-        var k = keyFor(e.date);
+        var k   = keyFor(e.date);
         if (!k) return;
-        if (!buckets[k]) buckets[k] = { revenue: 0, expenses: 0 };
-        buckets[k].expenses += (e.amount || 0);
+        if (!buckets[k]) buckets[k] = emptyBucket();
+        var cat = e.category || e.name || '';
+        if (EXP_CATS.indexOf(cat) > -1) buckets[k][cat] += (e.amount || 0);
       });
 
-      var keys   = Object.keys(buckets).sort().reverse();
-      var tbody  = document.getElementById('pl-breakdown-tbody');
+      var keys  = Object.keys(buckets).sort().reverse();
+      var tbody = document.getElementById('pl-breakdown-tbody');
 
       if (keys.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--g400);padding:2.5rem;">No data yet</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--g400);padding:2.5rem;">No data yet</td></tr>';
         return;
       }
 
-      var totRev = 0, totExp = 0;
+      var totRev = 0, totCats = { Stock: 0, Wages: 0, Rent: 0, Utilities: 0 };
 
       var rows = keys.map(function(k) {
-        var rev    = buckets[k].revenue;
-        var exp    = buckets[k].expenses;
-        var profit = rev - exp;
-        totRev += rev;
-        totExp += exp;
+        var b      = buckets[k];
+        var totExp = b.Stock + b.Wages + b.Rent + b.Utilities;
+        var profit = b.revenue - totExp;
+        totRev += b.revenue;
+        EXP_CATS.forEach(function(c) { totCats[c] += b[c]; });
         return '<tr>' +
           '<td class="td-main">' + fmtPeriod(k, view) + '</td>' +
-          '<td>\u00a3' + rev.toFixed(2) + '</td>' +
-          '<td>\u00a3' + exp.toFixed(2) + '</td>' +
+          '<td>\u00a3' + b.revenue.toFixed(2) + '</td>' +
+          '<td>' + (b.Stock   ? '\u00a3' + b.Stock.toFixed(2)     : '\u2014') + '</td>' +
+          '<td>' + (b.Wages   ? '\u00a3' + b.Wages.toFixed(2)     : '\u2014') + '</td>' +
+          '<td>' + (b.Rent    ? '\u00a3' + b.Rent.toFixed(2)      : '\u2014') + '</td>' +
+          '<td>' + (b.Utilities ? '\u00a3' + b.Utilities.toFixed(2) : '\u2014') + '</td>' +
+          '<td style="font-weight:600;">\u00a3' + totExp.toFixed(2) + '</td>' +
           plProfitCell(profit) +
           '</tr>';
       });
 
+      var totExp    = totCats.Stock + totCats.Wages + totCats.Rent + totCats.Utilities;
       var totProfit = totRev - totExp;
       var totStyle  = totProfit >= 0 ? 'color:var(--green);font-weight:700;' : 'color:var(--red);font-weight:700;';
       rows.push(
         '<tr class="pl-total-row">' +
           '<td>Total</td>' +
           '<td>\u00a3' + totRev.toFixed(2) + '</td>' +
-          '<td>\u00a3' + totExp.toFixed(2) + '</td>' +
+          '<td>\u00a3' + totCats.Stock.toFixed(2) + '</td>' +
+          '<td>\u00a3' + totCats.Wages.toFixed(2) + '</td>' +
+          '<td>\u00a3' + totCats.Rent.toFixed(2) + '</td>' +
+          '<td>\u00a3' + totCats.Utilities.toFixed(2) + '</td>' +
+          '<td style="font-weight:700;">\u00a3' + totExp.toFixed(2) + '</td>' +
           '<td style="' + totStyle + '">' + (totProfit < 0 ? '-' : '') + '\u00a3' + Math.abs(totProfit).toFixed(2) + '</td>' +
         '</tr>'
       );
