@@ -543,7 +543,7 @@
           </div>
           <div class="db-table-wrap">
             <table class="db-table">
-              <thead><tr><th>Order ID</th><th>Customer</th><th>Email</th><th>Items</th><th>Total</th><th>Date</th><th>Status</th></tr></thead>
+              <thead><tr><th>Order ID</th><th>Customer</th><th>Email</th><th>Address</th><th>Items</th><th>Total</th><th>Date</th><th>Status</th></tr></thead>
               <tbody id="orders-tbody"></tbody>
             </table>
           </div>
@@ -1021,7 +1021,7 @@
       var tbody = document.getElementById('orders-tbody');
 
       if (orders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--g400);padding:2.5rem;">No orders yet</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--g400);padding:2.5rem;">No orders yet</td></tr>';
         return;
       }
 
@@ -1030,10 +1030,16 @@
           return '<option value="' + s + '"' + (o.status === s ? ' selected' : '') + '>' + s.charAt(0).toUpperCase() + s.slice(1) + '</option>';
         }).join('');
 
+        var addrParts = o.street
+          ? [o.street, o.city, o.postcode].filter(Boolean)
+          : (o.address ? o.address.split(', ') : []);
+        var addrHtml = addrParts.map(function(p) { return esc(p); }).join('<br>');
+
         return '<tr>' +
           '<td class="td-main">#' + esc(o.id.slice(-6)) + '</td>' +
           '<td>' + esc(o.name) + '</td>' +
           '<td>' + esc(o.email) + '</td>' +
+          '<td style="white-space:normal;line-height:1.5;">' + (addrHtml || '\u2014') + '</td>' +
           '<td>' + (o.items ? o.items.map(function(i){return i.name+' \u00d7'+i.quantity;}).join(', ') : '') + '</td>' +
           '<td class="td-main">\u00a3' + (o.total || 0).toFixed(2) + '</td>' +
           '<td>' + esc(o.date) + '</td>' +
